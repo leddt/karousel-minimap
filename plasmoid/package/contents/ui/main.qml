@@ -163,9 +163,12 @@ PlasmoidItem {
     }
 
     function fireKarouselScroll(direction) {
-        const shortcut = direction < 0
+        invokeKarouselShortcut(direction < 0
             ? "karousel-grid-scroll-left"
-            : "karousel-grid-scroll-right"
+            : "karousel-grid-scroll-right")
+    }
+
+    function invokeKarouselShortcut(shortcut) {
         const src = "qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "
             + shellQuote(shortcut)
         if (exec.connectedSources.indexOf(src) !== -1)
@@ -176,17 +179,74 @@ PlasmoidItem {
     function activateWindow(win) {
         if (!win)
             return
+        // Already focused → same as Meta+Alt+Return: center in the viewport.
+        if (win.focused) {
+            invokeKarouselShortcut("karousel-grid-scroll-focused")
+            return
+        }
         const pid = Number(win.pid || 0)
         const resourceClass = String(win.resourceClass || "")
         const caption = String(win.caption || "")
 
+        // Title first: multi-window apps (Steam library + Friends, etc.) share a PID.
+        if (caption && activateByWindowTitle(caption, pid))
+            return
         if (pid > 0 && activateByPid(pid))
             return
         if (resourceClass && activateByAppId(resourceClass))
             return
-        if (caption && activateByCaption(caption))
+        if (caption && activateByAppName(caption))
             return
         statusText = "Could not activate " + (resourceClass || caption || "window")
+    }
+
+    function titlesMatch(taskTitle, caption) {
+        if (!taskTitle || !caption)
+            return false
+        if (taskTitle === caption)
+            return true
+        const a = taskTitle.toLowerCase()
+        const b = caption.toLowerCase()
+        return a === b || a.indexOf(b) !== -1 || b.indexOf(a) !== -1
+    }
+
+    function activateByWindowTitle(caption, pid) {
+        let exactPid = null
+        let exactAny = null
+        let fuzzyPid = null
+        let fuzzyAny = null
+
+        for (let i = 0; i < tasksModel.count; ++i) {
+            const idx = tasksModel.index(i, 0)
+            if (!tasksModel.data(idx, TaskManager.AbstractTasksModel.IsWindow))
+                continue
+            const title = String(tasksModel.data(idx, Qt.DisplayRole) || "")
+            if (!title)
+                continue
+            const taskPid = Number(tasksModel.data(idx, TaskManager.AbstractTasksModel.AppPid) || 0)
+            const samePid = pid > 0 && taskPid === pid
+            if (title === caption) {
+                if (samePid)
+                    exactPid = idx
+                else if (!exactAny)
+                    exactAny = idx
+                continue
+            }
+            if (!titlesMatch(title, caption))
+                continue
+            if (samePid) {
+                if (!fuzzyPid)
+                    fuzzyPid = idx
+            } else if (!fuzzyAny) {
+                fuzzyAny = idx
+            }
+        }
+
+        const best = exactPid || exactAny || fuzzyPid || fuzzyAny
+        if (!best)
+            return false
+        tasksModel.requestActivate(best)
+        return true
     }
 
     function activateByPid(pid) {
@@ -214,7 +274,7 @@ PlasmoidItem {
         return false
     }
 
-    function activateByCaption(caption) {
+    function activateByAppName(caption) {
         for (let i = 0; i < tasksModel.count; ++i) {
             const idx = tasksModel.index(i, 0)
             const name = String(tasksModel.data(idx, TaskManager.AbstractTasksModel.AppName) || "")
