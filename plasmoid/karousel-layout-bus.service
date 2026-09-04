@@ -1,0 +1,13 @@
+[Unit]
+Description=Karousel layout D-Bus bus (org.kde.karousel)
+After=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=org.kde.karousel
+ExecStart=/usr/bin/python3 %h/.local/share/plasma/plasmoids/org.leddt.karousel.minimap/contents/code/layout_bus.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

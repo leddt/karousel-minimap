@@ -1,0 +1,21 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "leddt",
+                "Email": ""
+            }
+        ],
+        "Category": "Windows and Tasks",
+        "Description": "Logical Karousel layout mini-map (D-Bus export)",
+        "Icon": "preferences-system-windows",
+        "Id": "org.leddt.karousel.minimap",
+        "License": "MIT",
+        "Name": "Karousel Mini-map",
+        "Version": "0.1.0",
+        "Website": "https://github.com/leddt/karousel-minimap"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": []
+}
