@@ -155,15 +155,6 @@ Canvas {
         // Subtle track only behind columns
         roundRect(ctx, originX, originY, drawnW, drawnH, 2, "rgba(34,38,46,0.55)", null)
 
-        // Viewport indicator clipped to column strip
-        const vpX = sx(viewport.x || 0)
-        const vpW = sw(viewport.width || colsW)
-        const vLeft = Math.max(vpX, originX)
-        const vRight = Math.min(vpX + vpW, originX + drawnW)
-        if (vRight > vLeft + 1) {
-            roundRect(ctx, vLeft, originY, vRight - vLeft, drawnH, 2, "rgba(90,160,200,0.16)", "rgba(90,160,200,0.55)")
-        }
-
         const gap = Math.max(1, Math.min(2, sw(6)))
 
         for (let ci = 0; ci < columns.length; ++ci) {
@@ -207,6 +198,21 @@ Canvas {
                     cursor += wh + gap
                 }
             }
+        }
+
+        // Viewport overlay on top: dim off-screen columns only (no frame).
+        const vpX = sx(viewport.x || 0)
+        const vpW = sw(viewport.width || colsW)
+        const vLeft = Math.max(vpX, originX)
+        const vRight = Math.min(vpX + vpW, originX + drawnW)
+        const dim = "rgba(6,8,12,0.48)"
+        if (vLeft > originX + 0.5) {
+            ctx.fillStyle = dim
+            ctx.fillRect(originX, originY, vLeft - originX, drawnH)
+        }
+        if (vRight < originX + drawnW - 0.5) {
+            ctx.fillStyle = dim
+            ctx.fillRect(vRight, originY, originX + drawnW - vRight, drawnH)
         }
     }
 
