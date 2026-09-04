@@ -9,6 +9,8 @@ Canvas {
     property real contentWidthHint: 120
 
     signal windowClicked(var win)
+    signal scrollLeft()
+    signal scrollRight()
 
     onLayoutDataChanged: requestPaint()
     onWidthChanged: requestPaint()
@@ -25,6 +27,21 @@ Canvas {
             const win = canvas.hitTest(mouse.x, mouse.y)
             if (win)
                 canvas.windowClicked(win)
+        }
+        onWheel: function (wheel) {
+            // Prefer horizontal tilt when present; otherwise vertical wheel.
+            const dx = wheel.angleDelta.x
+            const dy = wheel.angleDelta.y
+            const delta = Math.abs(dx) > Math.abs(dy) ? dx : dy
+            if (delta === 0)
+                return
+            // Wheel up / tilt left → Karousel "Scroll left"
+            // Wheel down / tilt right → Karousel "Scroll right"
+            if (delta > 0)
+                canvas.scrollLeft()
+            else
+                canvas.scrollRight()
+            wheel.accepted = true
         }
     }
 

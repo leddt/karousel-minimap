@@ -16,13 +16,15 @@ PlasmoidItem {
     switchWidth: Kirigami.Units.gridUnit * 1000
     switchHeight: Kirigami.Units.gridUnit * 1000
 
-    Plasmoid.constraintHints: PlasmaCore.Types.NoHint
     Plasmoid.backgroundHints: PlasmaCore.Types.DefaultBackground | PlasmaCore.Types.ConfigurableBackground
 
     property var layoutData: null
     property string statusText: "Connecting…"
     property string lastLayoutJson: ""
     property bool ensureBusPending: false
+    // Limit wheel → Karousel scroll rate to avoid edge glitches with animations.
+    readonly property int scrollThrottleMs: 30
+    property int pendingScrollDir: 0
 
     toolTipMainText: "Karousel Mini-map"
     toolTipSubText: statusText
@@ -52,6 +54,7 @@ PlasmoidItem {
                 root.onPollResult(stdout, stderr, exitCode)
                 return
             }
+            // invokeShortcut / ensure-bus: nothing else to parse
             if (root.ensureBusPending) {
                 root.ensureBusPending = false
                 pollTimer.start()
@@ -66,6 +69,20 @@ PlasmoidItem {
         repeat: true
         running: false
         onTriggered: root.pollOnce()
+    }
+
+    Timer {
+        id: scrollThrottleTimer
+        interval: root.scrollThrottleMs
+        repeat: false
+        onTriggered: {
+            if (root.pendingScrollDir !== 0) {
+                const dir = root.pendingScrollDir
+                root.pendingScrollDir = 0
+                root.fireKarouselScroll(dir)
+                scrollThrottleTimer.start()
+            }
+        }
     }
 
     function busScriptPath() {
@@ -128,6 +145,27 @@ PlasmoidItem {
         } catch (e) {
             statusText = "Bad layout JSON"
         }
+    }
+
+    function invokeKarouselScroll(direction) {
+        // Leading fire, then throttle; coalesce extras to one trailing step.
+        if (!scrollThrottleTimer.running) {
+            fireKarouselScroll(direction)
+            scrollThrottleTimer.start()
+            return
+        }
+        pendingScrollDir = direction
+    }
+
+    function fireKarouselScroll(direction) {
+        const shortcut = direction < 0
+            ? "karousel-grid-scroll-left"
+            : "karousel-grid-scroll-right"
+        const src = "qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "
+            + shellQuote(shortcut)
+        if (exec.connectedSources.indexOf(src) !== -1)
+            return
+        exec.connectSource(src)
     }
 
     function activateWindow(win) {
@@ -212,6 +250,8 @@ PlasmoidItem {
             onWindowClicked: function (win) {
                 root.activateWindow(win)
             }
+            onScrollLeft: root.invokeKarouselScroll(-1)
+            onScrollRight: root.invokeKarouselScroll(1)
         }
     }
 
@@ -234,6 +274,8 @@ PlasmoidItem {
                 onWindowClicked: function (win) {
                     root.activateWindow(win)
                 }
+                onScrollLeft: root.invokeKarouselScroll(-1)
+                onScrollRight: root.invokeKarouselScroll(1)
             }
 
             PlasmaComponents.Label {

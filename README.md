@@ -65,12 +65,26 @@ plasmawindowed org.leddt.karousel.minimap
 The install script also enables a user systemd unit
 `karousel-layout-bus.service` that owns `org.kde.karousel`.
 
-To pick up QML changes after upgrading, remove/re-add the widget or restart
-Plasma Shell:
+### Reloading after code changes (no logout)
+
+Removing and re-adding the widget often **does not** pick up QML changes
+because Plasma caches compiled QML. You do **not** need to log out.
 
 ```bash
+./plasmoid/reload.sh
+```
+
+That upgrades the package, clears `~/.cache/plasmashell/qmlcache`, and calls
+`refreshCurrentShell` (falls back to restarting `plasma-plasmashell`).
+
+If the soft refresh is not enough:
+
+```bash
+rm -rf ~/.cache/plasmashell/qmlcache
 systemctl --user restart plasma-plasmashell
 ```
+
+That restarts the shell only (panels/desktop redraw; open apps usually stay).
 
 ## Standalone PyQt window (optional)
 
