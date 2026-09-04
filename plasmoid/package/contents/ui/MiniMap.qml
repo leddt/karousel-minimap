@@ -7,6 +7,9 @@ Canvas {
     property var hitRegions: []
     /** Width the map wants at the current height (column-tight). */
     property real contentWidthHint: 120
+    /** Caption (or class) of the window under the pointer; empty if none. */
+    property string hoveredWindowTitle: ""
+    property string hoveredWindowClass: ""
 
     signal windowClicked(var win)
     signal scrollLeft()
@@ -19,6 +22,36 @@ Canvas {
     implicitWidth: Math.max(contentWidthHint, 48)
     implicitHeight: 24
 
+    function windowLabel(win) {
+        if (!win)
+            return { title: "", cls: "" }
+        const caption = String(win.caption || "").trim()
+        let cls = String(win.resourceClass || "").trim()
+        const dot = cls.lastIndexOf(".")
+        if (dot >= 0)
+            cls = cls.substring(dot + 1)
+        return {
+            title: caption || cls || "Window",
+            cls: cls
+        }
+    }
+
+    function updateHover(x, y) {
+        const win = hitTest(x, y)
+        if (!win) {
+            if (hoveredWindowTitle !== "" || hoveredWindowClass !== "") {
+                hoveredWindowTitle = ""
+                hoveredWindowClass = ""
+            }
+            return
+        }
+        const label = windowLabel(win)
+        if (hoveredWindowTitle !== label.title)
+            hoveredWindowTitle = label.title
+        if (hoveredWindowClass !== label.cls)
+            hoveredWindowClass = label.cls
+    }
+
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
@@ -27,6 +60,13 @@ Canvas {
             const win = canvas.hitTest(mouse.x, mouse.y)
             if (win)
                 canvas.windowClicked(win)
+        }
+        onPositionChanged: function (mouse) {
+            canvas.updateHover(mouse.x, mouse.y)
+        }
+        onExited: {
+            canvas.hoveredWindowTitle = ""
+            canvas.hoveredWindowClass = ""
         }
         onWheel: function (wheel) {
             // Prefer horizontal tilt when present; otherwise vertical wheel.

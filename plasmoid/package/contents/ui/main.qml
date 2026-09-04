@@ -26,8 +26,13 @@ PlasmoidItem {
     readonly property int scrollThrottleMs: 30
     property int pendingScrollDir: 0
 
-    toolTipMainText: "Karousel Mini-map"
-    toolTipSubText: statusText
+    property string hoverTitle: ""
+    property string hoverClass: ""
+
+    toolTipMainText: hoverTitle !== "" ? hoverTitle : "Karousel Mini-map"
+    toolTipSubText: hoverTitle !== ""
+        ? (hoverClass !== "" && hoverClass !== hoverTitle ? hoverClass : "")
+        : statusText
 
     TaskManager.TasksModel {
         id: tasksModel
@@ -247,6 +252,8 @@ PlasmoidItem {
             id: miniMap
             anchors.fill: parent
             layoutData: root.layoutData
+            onHoveredWindowTitleChanged: root.hoverTitle = hoveredWindowTitle
+            onHoveredWindowClassChanged: root.hoverClass = hoveredWindowClass
             onWindowClicked: function (win) {
                 root.activateWindow(win)
             }
@@ -271,6 +278,8 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 layoutData: root.layoutData
+                onHoveredWindowTitleChanged: root.hoverTitle = hoveredWindowTitle
+                onHoveredWindowClassChanged: root.hoverClass = hoveredWindowClass
                 onWindowClicked: function (win) {
                     root.activateWindow(win)
                 }
