@@ -55,7 +55,7 @@ Canvas {
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Qt.ArrowCursor
         onClicked: function (mouse) {
             const win = canvas.hitTest(mouse.x, mouse.y)
             if (win)
